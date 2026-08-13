@@ -4,9 +4,12 @@ from rest_framework import status
 
 from django.contrib.auth.models import User
 
-from rest_framework_simplejwt.views import TokenBlacklistView
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import (
+    TokenRefreshView,
+    TokenObtainPairView,
+    TokenBlacklistView
+)
 
 
 from accounts_app.api.serializers import RegisterSerializer
@@ -58,3 +61,19 @@ class LogoutView(TokenBlacklistView):
                 "detail": "Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid."
                 })
         return response
+
+
+class RefreshTokenView(TokenRefreshView):
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+
+        if response.status_code == status.HTTP_200_OK:
+            return Response({
+                "detail": "Token refreshed",
+                "access": response.data["access"],
+            },
+            status=status.HTTP_200_OK
+            )
+        return response
+    

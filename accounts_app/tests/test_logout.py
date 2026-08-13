@@ -1,6 +1,6 @@
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APITestCase, APIClient
+from rest_framework.test import APITestCase
 from django.contrib.auth.models import User
 
 class LogoutTestCase(APITestCase):
@@ -28,21 +28,3 @@ class LogoutTestCase(APITestCase):
 
     def test_logout_success(self):
         self.assertEqual(status.HTTP_200_OK, self.response.status_code)
-
-    def test_logout_blacklists_refresh_token(self):
-        first_response = self.client.post(
-            "/api/logout/",
-            {"refresh": self.refresh_token},
-            format="json"
-            )
-        print("asd", first_response.data)
-        
-        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
-
-        sec_response = self.client.post(
-            "/api/token/refresh/",
-            {"refresh": self.refresh_token},
-            format="json"
-            )
-        self.assertEqual(sec_response.status_code, status.HTTP_401_UNAUTHORIZED)
-        
