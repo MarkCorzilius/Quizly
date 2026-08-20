@@ -99,8 +99,7 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
             video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
             )
         serializer = QuizSerializer(quiz)
-        print("abc1: ", set(serializer.data.keys()))
-        print("abc2: ", self.expected_fields)
+        
         self.assertEqual(set(serializer.data.keys()), self.expected_fields)
         
     def test_nested_question_relationship(self):

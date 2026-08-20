@@ -3,6 +3,7 @@ from google import genai
 import shutil, time, whisper, yt_dlp, json
 import os, tempfile
 
+_model = None
 
 def create_quiz(video_url):
     audio_path = download_audio(video_url)
@@ -32,12 +33,16 @@ def download_audio(url):
     return output_path
 
 
-model = whisper.load_model("base")
+def get_model():
+    global _model
+    if _model is None:
+        _model = whisper.load_model("base")
+    return _model
+
 
 def transcribe_audio(audio_path):
     start = time.time()
-    result = model.transcribe(audio_path)
-    print(f"Transcription took {time.time() - start:.1f}s")
+    result = get_model().transcribe(audio_path)
     return result["text"]
 
 
