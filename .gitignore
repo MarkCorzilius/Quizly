@@ -64,3 +64,4 @@ local_settings.py
 *.pem
 *.key
 *.crt
+*.mp3
