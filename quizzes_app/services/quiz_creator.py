@@ -1,6 +1,7 @@
-import yt_dlp
-import whisper
+from yt_dlp.utils import DownloadError
 from google import genai
+import shutil, time, whisper, yt_dlp, json
+import os, tempfile
 
 
 def create_quiz(video_url):
@@ -12,21 +13,31 @@ def create_quiz(video_url):
 
 
 def download_audio(url):
-    output_path = "audio.mp3"
+    if not shutil.which("ffmpeg"):
+        raise ValueError("ffmpeg is not installed or not on PATH.")
+    fd, output_path = tempfile.mkstemp(suffix=".mp3")
+    os.close(fd)
     ydl_opts = {
     "format": "bestaudio/best",
     "outtmpl": output_path,
     "quiet": True,
     "noplaylist": True,
+    "overwrites": True,
     }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+    except DownloadError as error:
+        raise ValueError(f"Could not download video: {error}")
+    return output_path
 
 
-model = whisper.load_model("turbo")
+model = whisper.load_model("base")
 
 def transcribe_audio(audio_path):
+    start = time.time()
     result = model.transcribe(audio_path)
+    print(f"Transcription took {time.time() - start:.1f}s")
     return result["text"]
 
 
@@ -70,4 +81,4 @@ def generate_quiz(text):
         """
     )
 
-    return interaction.output_text
+    return json.loads(interaction.output_text)
