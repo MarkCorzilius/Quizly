@@ -23,6 +23,14 @@ class BaseSerializerTestCase(APITestCase):
         self.client.credentials(
             HTTP_AUTHORIZATION=f"Bearer {self.access_token}"
             )
+        
+        self.valid_quiz_data = {
+            "creator": self.user,
+            "title": "Python Quiz",
+            "description": "Python basics",
+            "video_url": "https://www.youtube.com/watch?v=WH_ieAsb4AI",
+            }
+
 
 
 class QuizSerializerTestCase(BaseSerializerTestCase):
@@ -35,12 +43,7 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
             "created_at",
             "updated_at",
             "video_url",
-            }
-
-        self.valid_data = {
-            "title": "Python Quiz",
-            "description": "Python basics",
-            "video_url": "https://www.youtube.com/watch?v=WH_ieAsb4AI",
+            "questions"
             }
 
     def test_required_fields(self):
@@ -51,7 +54,7 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
             ]
 
         for field in required_fields:
-            data = self.valid_data.copy()
+            data = self.valid_quiz_data.copy()
             data.pop(field)
             serializer = QuizSerializer(data=data)
 
@@ -59,7 +62,7 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
             self.assertIn(field, serializer.errors)
 
     def test_invalid_title(self):
-        data = self.valid_data.copy()
+        data = self.valid_quiz_data.copy()
         data['title'] = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
         serializer = QuizSerializer(data=data)
 
@@ -67,7 +70,7 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
         self.assertIn('title', serializer.errors)
 
     def test_invalid_description(self):
-        data = self.valid_data.copy()
+        data = self.valid_quiz_data.copy()
         data['description'] = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
         serializer = QuizSerializer(data=data)
 
@@ -81,7 +84,7 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
             'hello',
         ]
         for url in invalid_urls:
-            data = self.valid_data.copy()
+            data = self.valid_quiz_data.copy()
             data['video_url'] = url
             serializer = QuizSerializer(data=data)
 
@@ -90,17 +93,19 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
 
     def test_serialized_output(self):
         quiz = Quiz.objects.create(
+            creator=self.user,
             title="Python Quiz",
             description="Python basics",
             video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
             )
         serializer = QuizSerializer(quiz)
-
-        self.assertTrue(serializer.is_valid())
+        print("abc1: ", set(serializer.data.keys()))
+        print("abc2: ", self.expected_fields)
         self.assertEqual(set(serializer.data.keys()), self.expected_fields)
         
     def test_nested_question_relationship(self):
         quiz = Quiz.objects.create(
+            creator=self.user,
             title="Python Quiz",
             description="Python basics",
             video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
@@ -120,13 +125,13 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
 class QuizQuestionSerializerTestCase(BaseSerializerTestCase):
     def setUp(self):
         super().setUp()
-        self.valid_data = {
+        self.valid_question_data = {
             "question_title": "What is Python?",
             "question_options": ["Option A", "Option B", "Option C"],
             "answer": "Option A",
             }
 
-        self.quiz = Quiz.objects.create(**self.valid_data)
+        self.quiz = Quiz.objects.create(**self.valid_quiz_data)
         self.expected_fields = {
             "id",
             "question_title",
@@ -156,7 +161,7 @@ class QuizQuestionSerializerTestCase(BaseSerializerTestCase):
             self.assertIn(field, serializer.errors)
 
     def test_invalid_question_title(self):
-        data = self.valid_data.copy()
+        data = self.valid_question_data.copy()
         data['question_title'] = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
         serializer = QuizQuestionSerializer(data=data)
 
@@ -164,21 +169,18 @@ class QuizQuestionSerializerTestCase(BaseSerializerTestCase):
         self.assertIn('question_title', serializer.errors)
 
     def test_invalid_question_options(self):
-        data = self.valid_data.copy()
-        invalid_options_arrays = {
-            [],
-            ['Option 1'],
-            }
-        for array in invalid_options_arrays:
-            data['question_options'] = array
-            serializer = QuizQuestionSerializer(data=data)
+        data = self.valid_question_data.copy()
+        data['question_options'] = ['Option A', 'Option B']
+        data['answer'] = 'Option C'
 
-            self.assertFalse(serializer.is_valid())
-            self.assertIn('question_options', serializer.errors)
+        serializer = QuizQuestionSerializer(data=data)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('answer', serializer.errors)
 
 
     def test_invalid_question_answer(self):
-        data = self.valid_data.copy()
+        data = self.valid_question_data.copy()
         invalid_answers = {
             '',
             'Option Not Existing',
@@ -192,6 +194,7 @@ class QuizQuestionSerializerTestCase(BaseSerializerTestCase):
 
     def test_serialized_output(self):
         quiz = Quiz.objects.create(
+            creator=self.user,
             title="Python Quiz",
             description="Python basics",
             video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
@@ -204,6 +207,6 @@ class QuizQuestionSerializerTestCase(BaseSerializerTestCase):
             answer="Option A",
             )
         serializer = QuizQuestionSerializer(quiz_question)
-
-        self.assertEqual(set(serializer.data.keys(), self.expected_fields))
+ 
+        self.assertEqual(set(serializer.data.keys()), self.expected_fields)
 

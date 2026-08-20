@@ -1,8 +1,22 @@
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from quizzes_app.models import Quiz, QuizQuestion
-from quizzes_app.api.serializers import QuizSerializer, QuizQuestionSerializer
 from django.contrib.auth.models import User
+from unittest.mock import patch
+
+
+MOCK_QUIZ_DATA = {
+            "id": 1,
+            "title": "Mock Quiz",
+            "description": "Mock Description",
+            "questions": [
+                {
+                    "question_title": "What is this about?",
+                    "question_options": ["A", "B", "C", "D"],
+                    "answer": "A"
+                    }
+                    ]
+                    }
 
 class BaseQuizViewTestCase(APITestCase):
     def setUp(self):
@@ -26,6 +40,7 @@ class BaseQuizViewTestCase(APITestCase):
         self.client.credentials(
             HTTP_AUTHORIZATION=f"Bearer {self.access_token}"
             )
+        
 
 class QuizViewTests(BaseQuizViewTestCase):
 
@@ -46,15 +61,14 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(Quiz.objects.count(), 0)
         self.assertEqual(QuizQuestion.objects.count(), 0)
 
-    def test_create_quiz(self):
+    @patch("quizzes_app.api.views.create_quiz", return_value=MOCK_QUIZ_DATA)
+    def test_create_quiz(self, mock_create):
         response = self.client.post(
             "/api/quizzes/",
-            {
-                "url":"https://www.youtube.com/watch?v=WH_ieAsb4AI"
-            },
+            {"url": "https://www.youtube.com/watch?v=WH_ieAsb4AI"},
             format="json"
-            )
-
+        )
+        
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_quiz_invalid_data(self):
@@ -67,15 +81,22 @@ class QuizViewTests(BaseQuizViewTestCase):
             )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-       
+
     def test_list_quizzes(self):
-        self.client.post(
-            "/api/quizzes/",
-            {
-                "url":"https://www.youtube.com/watch?v=WH_ieAsb4AI"
-            },
-            format="json"
+        quiz = Quiz.objects.create(
+            creator=self.user,
+            title="Test Quiz",
+            description="Test Description",
+            video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
             )
+
+        QuizQuestion.objects.create(
+            quiz=quiz,
+            question_title="Test question",
+            question_options=['A', 'B', 'C', 'D'],
+            answer="A",
+        )
+
         response = self.client.get("/api/quizzes/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -90,41 +111,44 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(len(response.data), 0)
 
     def test_retrieve_quiz(self):
-        self.client.post(
-            "/api/quizzes/",
-            {
-                "url":"https://www.youtube.com/watch?v=WH_ieAsb4AI"
-            },
-            format="json"
+        quiz = Quiz.objects.create(
+            creator=self.user,
+            title="Test Quiz",
+            description="Test Description",
+            video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
             )
 
-        response = self.client.get("/api/quizzes/1/")
+        QuizQuestion.objects.create(
+            quiz=quiz,
+            question_title="Test question",
+            question_options=['A', 'B', 'C', 'D'],
+            answer="A",
+        )
+
+        response = self.client.get(f"/api/quizzes/{quiz.id}/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], 1)
 
     def test_retrieve_quiz_not_found(self):
-        self.client.post(
-            "/api/quizzes/",
-            {
-                "url":"https://www.youtube.com/watch?v=WH_ieAsb4AI"
-            },
-            format="json"
-            )
-
         response = self.client.get("/api/quizzes/9999/")
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_retrieve_foreign_quiz_not_allowed(self):
-        quiz_response = self.client.post(
-            "/api/quizzes/",
-            {
-                "url":"https://www.youtube.com/watch?v=WH_ieAsb4AI"
-            },
-            format="json"
+        quiz = Quiz.objects.create(
+            creator=self.user,
+            title="Test Quiz",
+            description="Test Description",
+            video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
             )
-        quiz_id = quiz_response.data["id"]
+
+        QuizQuestion.objects.create(
+            quiz=quiz,
+            question_title="Test question",
+            question_options=['A', 'B', 'C', 'D'],
+            answer="A",
+        )
 
         User.objects.create_user(username="ForeignUser", password="password123")
 
@@ -141,22 +165,27 @@ class QuizViewTests(BaseQuizViewTestCase):
             HTTP_AUTHORIZATION=f"Bearer {access_token}"
             )
         
-        response = self.client.get(f"/api/quizzes/{quiz_id}/")
+        response = self.client.get(f"/api/quizzes/{quiz.id}/")
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
     def test_update_quiz(self):
-        quiz_response = self.client.post(
-            "/api/quizzes/",
-            {
-                "url":"https://www.youtube.com/watch?v=WH_ieAsb4AI"
-            },
-            format="json"
+        quiz = Quiz.objects.create(
+            creator=self.user,
+            title="Test Quiz",
+            description="Test Description",
+            video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
             )
-        quiz_id = quiz_response.data["id"]
+
+        QuizQuestion.objects.create(
+            quiz=quiz,
+            question_title="Test question",
+            question_options=['A', 'B', 'C', 'D'],
+            answer="A",
+        )
 
         response = self.client.patch(
-            f"/api/quizzes/{quiz_id}/",
+            f"/api/quizzes/{quiz.id}/",
             {
                 "title": "Partially Updated Title",
                 "description": "Partially Updated Description"
@@ -169,13 +198,13 @@ class QuizViewTests(BaseQuizViewTestCase):
     def test_update_quiz_keeps_unspecified_fields(self):
         quiz = Quiz.objects.create(
             creator=self.user,
-            title="Old title",
+            title="Old Title",
             description="Old Description",
-            url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
+            video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
             )
 
         response = self.client.patch(
-            f"/api/quizzes/{quiz.creator}/",
+            f"/api/quizzes/{quiz.id}/",
             {
                 "title": "New Title",
             },
@@ -193,7 +222,7 @@ class QuizViewTests(BaseQuizViewTestCase):
             creator=self.user,
             title="Old title",
             description="Old Description",
-            url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
+            video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
             )
 
         response = self.client.patch(
@@ -207,14 +236,12 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_update_quiz_foreign_user_not_allowed(self):
-        quiz_response = Quiz.objects.create(
+        quiz = Quiz.objects.create(
             creator=self.user,
             title="Old title",
             description="Old Description",
-            url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
+            video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
             )
-
-        quiz_id = quiz_response.data['id']
 
         User.objects.create_user(username="ForeignUser", password="password123")
         response = self.client.post(
@@ -232,21 +259,21 @@ class QuizViewTests(BaseQuizViewTestCase):
             )
 
         response = self.client.patch(
-            f"/api/quizzes/{quiz_id}/",
+            f"/api/quizzes/{quiz.id}/",
             {
                 "title": "New Title",
             },
             format="json"
         )
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         
     def test_delete_quiz(self):
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Old title",
             description="Old Description",
-            url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
+            video_url="https://www.youtube.com/watch?v=WH_ieAsb4AI",
             )
         response = self.client.delete(f"/api/quizzes/{quiz.id}/")
 

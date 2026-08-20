@@ -12,7 +12,7 @@ class Quiz(models.Model):
 
 class QuizQuestion(models.Model):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
-    title = models.CharField(max_length=100)
+    question_title = models.CharField(max_length=100)
     question_options = models.JSONField()
     answer = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
