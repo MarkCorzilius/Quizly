@@ -6,6 +6,8 @@ class CookieJWTAuthentication(JWTAuthentication):
     falls back to the httponly 'access_token' cookie (used by the frontend)."""
 
     def authenticate(self, request):
+        """Authenticate via the Authorization header, or fall back to the access_token cookie."""
+
         header = self.get_header(request)
         if header is not None:
             return super().authenticate(request)

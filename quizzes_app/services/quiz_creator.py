@@ -1,11 +1,20 @@
-from yt_dlp.utils import DownloadError
+import json
+import os
+import shutil
+import tempfile
+import time
+
+import whisper
+import yt_dlp
 from google import genai
-import shutil, time, whisper, yt_dlp, json
-import os, tempfile
+from yt_dlp.utils import DownloadError
 
 _model = None
 
+
 def create_quiz(video_url):
+    """Download the video's audio, transcribe it, and generate a quiz from the transcript."""
+
     audio_path = download_audio(video_url)
     text = transcribe_audio(audio_path)
     quiz_data = generate_quiz(text)
@@ -14,6 +23,8 @@ def create_quiz(video_url):
 
 
 def download_audio(url):
+    """Download the best available audio track from a URL to a temporary mp3 file."""
+
     if not shutil.which("ffmpeg"):
         raise ValueError("ffmpeg is not installed or not on PATH.")
     fd, output_path = tempfile.mkstemp(suffix=".mp3")
@@ -34,6 +45,8 @@ def download_audio(url):
 
 
 def get_model():
+    """Lazily load and cache the Whisper transcription model."""
+
     global _model
     if _model is None:
         _model = whisper.load_model("base")
@@ -41,6 +54,8 @@ def get_model():
 
 
 def transcribe_audio(audio_path):
+    """Transcribe the audio file at the given path to plain text."""
+
     start = time.time()
     result = get_model().transcribe(audio_path)
     return result["text"]
@@ -48,9 +63,12 @@ def transcribe_audio(audio_path):
 
 client = genai.Client()
 
+
 def generate_quiz(text):
+    """Ask the Gemini model to build a 10-question JSON quiz from the transcript text."""
+
     interaction = client.interactions.create(
-        model="gemini-3.7-flash",
+        model="gemini-3.6-flash",
         input=text,
         system_instruction="""
             Based on the following transcript, generate a quiz in valid JSON format.

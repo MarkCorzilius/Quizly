@@ -1,8 +1,10 @@
-from rest_framework import status
-from rest_framework.test import APITestCase, APIClient
-from quizzes_app.models import Quiz, QuizQuestion
-from django.contrib.auth.models import User
 from unittest.mock import patch
+
+from django.contrib.auth.models import User
+from rest_framework import status
+from rest_framework.test import APIClient, APITestCase
+
+from quizzes_app.models import Quiz, QuizQuestion
 
 
 MOCK_QUIZ_DATA = {
@@ -19,7 +21,11 @@ MOCK_QUIZ_DATA = {
                     }
 
 class BaseQuizViewTestCase(APITestCase):
+    """Base test case that logs in a test user before each test."""
+
     def setUp(self):
+        """Create a test user and log in to obtain an access token."""
+
         self.user = User.objects.create_user(
             username="testuser",
             password="password123"
@@ -45,9 +51,13 @@ class BaseQuizViewTestCase(APITestCase):
 class QuizViewTests(BaseQuizViewTestCase):
 
     def setUp(self):
+        """Run the base setup."""
+
         super().setUp()
 
     def test_unathenticated_request(self):
+        """An unauthenticated request to create a quiz is rejected."""
+
         self.client.credentials()
         response = self.client.post(
             "/api/quizzes/",
@@ -63,6 +73,8 @@ class QuizViewTests(BaseQuizViewTestCase):
 
     @patch("quizzes_app.api.views.create_quiz", return_value=MOCK_QUIZ_DATA)
     def test_create_quiz(self, mock_create):
+        """Creating a quiz with a valid URL returns a 201 response."""
+
         response = self.client.post(
             "/api/quizzes/",
             {"url": "https://www.youtube.com/watch?v=WH_ieAsb4AI"},
@@ -72,6 +84,8 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_quiz_invalid_data(self):
+        """Creating a quiz without a valid URL is rejected."""
+
         response = self.client.post(
             "/api/quizzes/",
             {
@@ -83,6 +97,8 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_list_quizzes(self):
+        """Listing quizzes returns all quizzes owned by the user."""
+
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Test Quiz",
@@ -105,12 +121,16 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(len(response.data), 1)
 
     def test_empty_list_quizzes(self):
+        """Listing quizzes returns an empty result when none exist."""
+
         response = self.client.get("/api/quizzes/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)
 
     def test_retrieve_quiz(self):
+        """Retrieving an owned quiz returns its details."""
+
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Test Quiz",
@@ -131,11 +151,15 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(response.data["id"], 1)
 
     def test_retrieve_quiz_not_found(self):
+        """Retrieving a non-existing quiz returns a 404 response."""
+
         response = self.client.get("/api/quizzes/9999/")
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_retrieve_foreign_quiz_not_allowed(self):
+        """Retrieving another user's quiz returns a 404 response."""
+
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Test Quiz",
@@ -170,6 +194,8 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_update_quiz(self):
+        """Partially updating an owned quiz succeeds."""
+
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Test Quiz",
@@ -196,6 +222,8 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_update_quiz_keeps_unspecified_fields(self):
+        """Updating only some fields keeps the other fields unchanged."""
+
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Old Title",
@@ -218,6 +246,8 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_update_quiz_not_found(self):
+        """Updating a non-existing quiz returns a 404 response."""
+
         Quiz.objects.create(
             creator=self.user,
             title="Old title",
@@ -236,6 +266,8 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_update_quiz_foreign_user_not_allowed(self):
+        """Updating another user's quiz returns a 404 response."""
+
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Old title",
@@ -269,6 +301,8 @@ class QuizViewTests(BaseQuizViewTestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         
     def test_delete_quiz(self):
+        """Deleting an owned quiz removes it and its questions."""
+
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Old title",
@@ -283,6 +317,8 @@ class QuizViewTests(BaseQuizViewTestCase):
         
 
     def test_delete_quiz_not_found(self):
+        """Deleting a non-existing quiz returns a 404 response."""
+
         response = self.client.delete("/api/quizzes/9999/")
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

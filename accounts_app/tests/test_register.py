@@ -1,10 +1,15 @@
+from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APITestCase, APIClient
-from django.contrib.auth.models import User
+from rest_framework.test import APIClient, APITestCase
+
 
 class RegisterTestCase(APITestCase):
+    """Tests for the register endpoint."""
+
     def setUp(self):
+        """Create an existing user used to test duplicate registration."""
+
         self.first_user = User.objects.create_user(
             username="firstuser",
             email="firstuser@gmail.com",
@@ -12,6 +17,8 @@ class RegisterTestCase(APITestCase):
             )
 
     def test_register_success(self):
+        """Registering with valid data creates the user."""
+
         response = self.client.post(
             "/api/register/",
             {
@@ -26,6 +33,8 @@ class RegisterTestCase(APITestCase):
         self.assertTrue(User.objects.filter(username="testuser").exists())
 
     def test_register_unsafe_password(self):
+        """Registering with mismatched passwords is rejected and no user is created."""
+
         response = self.client.post(
             "/api/register/",
             {
@@ -41,6 +50,8 @@ class RegisterTestCase(APITestCase):
         self.assertFalse(User.objects.filter(username="testuser").exists())
 
     def test_register_existing_user(self):
+        """Registering with an already taken username is rejected."""
+
         response = self.client.post(
             "/api/register/",
             {

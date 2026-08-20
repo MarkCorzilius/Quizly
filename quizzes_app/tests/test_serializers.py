@@ -1,10 +1,16 @@
-from rest_framework.test import APITestCase
-from quizzes_app.models import Quiz, QuizQuestion
-from quizzes_app.api.serializers import QuizSerializer, QuizQuestionSerializer
 from django.contrib.auth.models import User
+from rest_framework.test import APITestCase
+
+from quizzes_app.api.serializers import QuizQuestionSerializer, QuizSerializer
+from quizzes_app.models import Quiz, QuizQuestion
+
 
 class BaseSerializerTestCase(APITestCase):
+    """Base test case that logs in a test user and prepares valid quiz data."""
+
     def setUp(self):
+        """Create a test user, log in, and build a valid quiz data fixture."""
+
         self.user = User.objects.create_user(
             username="testuser",
             password="password123"
@@ -34,7 +40,11 @@ class BaseSerializerTestCase(APITestCase):
 
 
 class QuizSerializerTestCase(BaseSerializerTestCase):
+    """Tests for QuizSerializer."""
+
     def setUp(self):
+        """Define the expected serialized field set."""
+
         super().setUp()
         self.expected_fields = {
             "id",
@@ -47,6 +57,8 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
             }
 
     def test_required_fields(self):
+        """Missing any required field makes the serializer invalid."""
+
         required_fields = [
             'title',
             'description',
@@ -62,6 +74,8 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
             self.assertIn(field, serializer.errors)
 
     def test_invalid_title(self):
+        """A title exceeding the max length is rejected."""
+
         data = self.valid_quiz_data.copy()
         data['title'] = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
         serializer = QuizSerializer(data=data)
@@ -70,6 +84,8 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
         self.assertIn('title', serializer.errors)
 
     def test_invalid_description(self):
+        """A description exceeding the max length is rejected."""
+
         data = self.valid_quiz_data.copy()
         data['description'] = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
         serializer = QuizSerializer(data=data)
@@ -78,6 +94,8 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
         self.assertIn('description', serializer.errors)
 
     def test_invalid_video_url(self):
+        """Non-URL values for video_url are rejected."""
+
         invalid_urls = [
             'not-a-url',
             '123',
@@ -92,6 +110,8 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
             self.assertIn('video_url', serializer.errors)
 
     def test_serialized_output(self):
+        """The serialized quiz output exposes exactly the expected fields."""
+
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Python Quiz",
@@ -103,6 +123,8 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
         self.assertEqual(set(serializer.data.keys()), self.expected_fields)
         
     def test_nested_question_relationship(self):
+        """Nested questions are included in the serialized quiz output."""
+
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Python Quiz",
@@ -122,7 +144,11 @@ class QuizSerializerTestCase(BaseSerializerTestCase):
 
 
 class QuizQuestionSerializerTestCase(BaseSerializerTestCase):
+    """Tests for QuizQuestionSerializer."""
+
     def setUp(self):
+        """Create a quiz and define the expected serialized field set."""
+
         super().setUp()
         self.valid_question_data = {
             "question_title": "What is Python?",
@@ -160,6 +186,8 @@ class QuizQuestionSerializerTestCase(BaseSerializerTestCase):
             self.assertIn(field, serializer.errors)
 
     def test_invalid_question_title(self):
+        """A question title exceeding the max length is rejected."""
+
         data = self.valid_question_data.copy()
         data['question_title'] = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
         serializer = QuizQuestionSerializer(data=data)
@@ -168,6 +196,8 @@ class QuizQuestionSerializerTestCase(BaseSerializerTestCase):
         self.assertIn('question_title', serializer.errors)
 
     def test_invalid_question_options(self):
+        """An answer not present in the question options is rejected."""
+
         data = self.valid_question_data.copy()
         data['question_options'] = ['Option A', 'Option B']
         data['answer'] = 'Option C'
@@ -179,6 +209,8 @@ class QuizQuestionSerializerTestCase(BaseSerializerTestCase):
 
 
     def test_invalid_question_answer(self):
+        """Empty or non-matching answers are rejected."""
+
         data = self.valid_question_data.copy()
         invalid_answers = {
             '',
@@ -192,6 +224,8 @@ class QuizQuestionSerializerTestCase(BaseSerializerTestCase):
             self.assertIn('answer', serializer.errors)
 
     def test_serialized_output(self):
+        """The serialized question output exposes exactly the expected fields."""
+
         quiz = Quiz.objects.create(
             creator=self.user,
             title="Python Quiz",
