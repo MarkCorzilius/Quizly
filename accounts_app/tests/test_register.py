@@ -25,7 +25,7 @@ class RegisterTestCase(APITestCase):
                 "username": "testuser",
                 "email": "testuser@gmail.com",
                 "password": "password123",
-                "repeated_password": "password123",
+                "confirmed_password": "password123",
                 },
                 format="json"
                 )
@@ -41,7 +41,7 @@ class RegisterTestCase(APITestCase):
                 "username": "testuser",
                 "email": "testuser@gmail.com",
                 "password": "huhu",
-                "repeated_password": "password123",
+                "confirmed_password": "password123",
                 },
                 format="json"
                 )
@@ -58,7 +58,7 @@ class RegisterTestCase(APITestCase):
                 "username": "firstuser",
                 "email": "firstuser@gmail.com",
                 "password": "password123",
-                "repeated_password": "password123",
+                "confirmed_password": "password123",
                 },
                 format="json"
                 )
