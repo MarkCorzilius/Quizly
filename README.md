@@ -15,38 +15,52 @@ Quizly is an AI-powered quiz generator that turns YouTube videos into interactiv
 ## 🚀 Quickstart Instructions
 
 Clone the repository
-
+```bash
 git clone <your-repo-url>
+```
 
 Create a virtual environment
-
+```bash
 python -m venv venv
+```
 
 Activate Virtual Environment
 
 Windows:
-
+```bash
 venv\Scripts\activate
+```
 
 Mac:
-
+```bash
 source venv/bin/activate
+```
 
 Install Dependencies
-
+```bash
 pip install -r requirements.txt
+```
+
+### 🔑 Environment Variables
+Quizly uses the Google Gemini API to generate quizzes. Create a .env file in the project root and add your Gemini API key:
+```env
+GEMINI_API_KEY=your-gemini-api-key
+```
 
 Run Database Migrations
-
+```bash
 python manage.py migrate
+```
 
 Create Superuser
-
+```bash
 python manage.py createsuperuser
+```
 
 Run Server
-
+```bash
 python manage.py runserver
+```
 
 ## 📡 API Overview
 
@@ -82,5 +96,6 @@ Access tokens are used to authenticate API requests, while refresh tokens can be
 ## 🧪 Testing
 
 Run the test suite with:
-
+```bash
 python manage.py test
+```
