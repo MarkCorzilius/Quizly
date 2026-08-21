@@ -59,6 +59,7 @@ class QuizViewTests(BaseQuizViewTestCase):
         """An unauthenticated request to create a quiz is rejected."""
 
         self.client.credentials()
+        self.client.cookies.clear()
         response = self.client.post(
             "/api/quizzes/",
             {
