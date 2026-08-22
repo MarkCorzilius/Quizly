@@ -41,9 +41,15 @@ Install Dependencies
 pip install -r requirements.txt
 ```
 
-### 🔑 Environment Variables
-Quizly uses the Google Gemini API to generate quizzes. Create a .env file in the project root and add your Gemini API key:
-```env
+### Environment Variables
+
+Copy .env.template to .env and fill in your own values:
+GEMINI_API_KEY=your-gemini-api-key
+```
+cp .env.template .env
+```
+Example:
+```
 GEMINI_API_KEY=your-gemini-api-key
 ```
 
