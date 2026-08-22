@@ -8,6 +8,7 @@ import whisper
 import yt_dlp
 from google import genai
 from yt_dlp.utils import DownloadError
+import random
 
 _model = None
 
@@ -56,7 +57,6 @@ def get_model():
 def transcribe_audio(audio_path):
     """Transcribe the audio file at the given path to plain text."""
 
-    start = time.time()
     result = get_model().transcribe(audio_path)
     return result["text"]
 
@@ -104,4 +104,8 @@ def generate_quiz(text):
         """
     )
 
-    return json.loads(interaction.output_text)
+    quiz_data = json.loads(interaction.output_text)
+    for question in quiz_data.get("questions", []):
+        random.shuffle(question["question_options"])
+        
+    return quiz_data
