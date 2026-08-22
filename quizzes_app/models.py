@@ -12,6 +12,13 @@ class Quiz(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     video_url = models.URLField()
 
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = "Quiz"
+        verbose_name_plural = "Quizzes"
+
 
 class QuizQuestion(models.Model):
     """A single question with options and its correct answer, tied to a quiz."""
@@ -22,3 +29,10 @@ class QuizQuestion(models.Model):
     answer = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.question_title
+
+    class Meta:
+        verbose_name = "Question"
+        verbose_name_plural = "Questions"
