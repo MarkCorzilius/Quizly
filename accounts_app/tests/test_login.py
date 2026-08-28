@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
+from django.core.cache import cache
 
 
 class LoginTestCase(APITestCase):
@@ -9,17 +10,26 @@ class LoginTestCase(APITestCase):
 
     def setUp(self):
         """Create a test user and log in to obtain tokens."""
-
+        
+        cache.clear()
+        self.username = "testuser"
+        self.password = "Password123!"
         self.user = User.objects.create_user(
-            username="testuser",
-            password="password123"
-            )
+            username=self.username,
+            password=self.password,
+        )
+        self.client = APIClient()
+
+        self.correct_data = {
+            "email": self.username,
+            "password": self.password
+        }
         
         self.response = self.client.post(
             "/api/login/",
             {
-                "username": "testuser",
-                "password": "password123"
+                "username": self.username,
+                "password": self.password,
                 },
                 format="json"
                 )
@@ -61,3 +71,25 @@ class LoginTestCase(APITestCase):
                 )
 
         self.assertEqual(status.HTTP_401_UNAUTHORIZED, response.status_code)
+
+    def test_login_throttle(self):
+        for _ in range(10):
+            response = self.client.post("/api/login/", self.correct_data, format="json")
+            self.assertNotEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        response = self.client.post("/api/login/", self.correct_data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_different_emails_have_different_throttle_rates(self):
+        for _ in range(10):
+            response = self.client.post("/api/login/", self.correct_data, format="json")
+            self.assertNotEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        response = self.client.post("/api/login/", self.correct_data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        User.objects.create_user(username="foreignuser", password="securePassword123!", is_active=True)
+        response = self.client.post("/api/login/", data={
+            "username": "foreignuser",
+            "password": "securePassword123!",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

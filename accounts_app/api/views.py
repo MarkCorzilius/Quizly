@@ -12,6 +12,8 @@ from rest_framework_simplejwt.views import (
 
 from accounts_app.api.authentication import CookieJWTAuthentication
 from accounts_app.api.serializers import RegisterSerializer
+from accounts_app.throttles import LoginEmailThrottle, RegisterEmailThrottle
+
 
 COOKIE_KWARGS = {
     "httponly": True,
@@ -25,6 +27,7 @@ class RegisterView(CreateAPIView):
 
     permission_classes = [AllowAny]
     serializer_class = RegisterSerializer
+    throttle_classes = [RegisterEmailThrottle]
 
     def create(self, request, *args, **kwargs):
         """Create the user and return a simple success message."""
@@ -41,6 +44,7 @@ class LoginView(TokenObtainPairView):
     """Authenticates a user and returns/sets JWT access and refresh tokens."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [LoginEmailThrottle]
 
     def post(self, request, *args, **kwargs):
         """Issue tokens on successful login and store them as httponly cookies."""
